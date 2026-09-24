@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suggest an Improvement</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1c2230;
+    --muted: #5d6677;
+    --border: #d9dde5;
+    --accent: #2f6fed;
+    --accent-soft: #e8f0fe;
+    --danger: #c62828;
+    --ok: #1e7d4f;
+    --ok-soft: #e6f4ec;
+    --warn-soft: #fff4e0;
+    --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151c; --card: #1b1f29; --text: #e6e9ef; --muted: #9aa3b5;
+      --border: #2e3442; --accent: #6b9bff; --accent-soft: #1f2a44;
+      --danger: #ff7b7b; --ok: #5fd39a; --ok-soft: #173326;
+      --warn-soft: #3a2e14; --warn: #f2c46b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .lede { color: var(--muted); margin: 0 0 24px; }
+  .field { margin-bottom: 22px; }
+  label.q, legend.q { display: block; font-weight: 600; margin-bottom: 6px; padding: 0; }
+  .req { color: var(--danger); margin-left: 2px; }
+  .hint { color: var(--muted); font-size: 13px; margin: -2px 0 8px; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  input[type=text], select, textarea {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--text);
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } .card { padding: 20px; } }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips input { position: absolute; opacity: 0; pointer-events: none; }
+  .chips label {
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px;
+    cursor: pointer; user-select: none; font-size: 14px; background: var(--card);
+  }
+  .chips input:checked + label { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .chips input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+  details.prompts { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 14px; }
+  details.prompts summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  details.prompts ul { margin: 8px 0 2px; padding-left: 18px; }
+  .err { color: var(--danger); font-size: 13px; margin-top: 6px; display: none; }
+  .invalid .err { display: block; }
+  .invalid input[type=text], .invalid select, .invalid textarea { border-color: var(--danger); }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 12px 20px;
+    background: var(--accent); color: #fff; cursor: pointer; width: 100%;
+  }
+  button:disabled { opacity: .6; cursor: progress; }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); width: auto; }
+  .banner { border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; font-size: 14px; }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); }
+  .banner.error { background: var(--warn-soft); color: var(--danger); }
+  .success { text-align: center; padding: 20px 0; }
+  .success .tick {
+    width: 56px; height: 56px; border-radius: 50%; background: var(--ok-soft); color: var(--ok);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 12px;
+  }
+  .success p { color: var(--muted); }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <div id="formView">
+      <h1>💡 Suggest an improvement</h1>
+      <p class="lede">Tell us about something that's repetitive, slow, confusing, or could be easier. It doesn't need to be a full feature request. Just describe the problem.</p>
+
+      <div id="configBanner" class="banner warn" hidden>Setup needed: set <code>ENDPOINT</code> in this page's script to your Apps Script web app URL.</div>
+      <div id="errorBanner" class="banner error" hidden></div>
+
+      <form id="ideaForm" novalidate>
+        <div class="row">
+          <div class="field" data-field="name">
+            <label class="q" for="name">Your name<span class="req">*</span></label>
+            <input type="text" id="name" name="name" autocomplete="name">
+            <div class="err">Please enter your name.</div>
+          </div>
+          <div class="field" data-field="team">
+            <label class="q" for="team">Team<span class="req">*</span></label>
+            <select id="team" name="team">
+              <option value="">Select…</option>
+              <option>Operations</option>
+              <option>Technical Support</option>
+              <option>Customer Success</option>
+              <option>Compliance</option>
+              <option>Sales</option>
+              <option>Development</option>
+              <option>Other</option>
+            </select>
+            <div class="err">Please choose your team.</div>
+          </div>
+        </div>
+
+        <fieldset class="field" data-field="tool">
+          <legend class="q">What would you like to improve?<span class="req">*</span></legend>
+          <div class="chips" id="toolChips"></div>
+          <div id="otherToolWrap" hidden style="margin-top:10px">
+            <input type="text" id="otherTool" name="otherTool" placeholder="Which tool or process?">
+          </div>
+          <div class="err">Please pick one.</div>
+        </fieldset>
+
+        <div class="field" data-field="problem">
+          <label class="q" for="problem">What problem are you running into?<span class="req">*</span></label>
+          <details class="prompts">
+            <summary>Not sure what to write? Try one of these</summary>
+            <ul>
+              <li>What task is taking too much time?</li>
+              <li>What do you keep having to ask someone about?</li>
+              <li>What process feels repetitive or manual?</li>
+              <li>What information would make your job easier?</li>
+            </ul>
+          </details>
+          <textarea id="problem" name="problem" placeholder="e.g. Every time a merchant reports a wrong excise amount, I have to check three different places before I can tell whether it's a config issue."></textarea>
+          <div class="err">Please describe the problem.</div>
+        </div>
+
+        <div class="field" data-field="desired">
+          <label class="q" for="desired">What would you like the tool to do instead?<span class="req">*</span></label>
+          <textarea id="desired" name="desired" placeholder="e.g. Show the merchant's tax config and the order's calculated rate on one screen."></textarea>
+          <div class="err">Please describe what would help.</div>
+        </div>
+
+        <div class="row">
+          <fieldset class="field" data-field="frequency">
+            <legend class="q">How often does this happen?<span class="req">*</span></legend>
+            <div class="chips" id="freqChips"></div>
+            <div class="err">Please pick one.</div>
+          </fieldset>
+          <fieldset class="field" data-field="duration">
+            <legend class="q">How long does it take each time?<span class="req">*</span></legend>
+            <div class="chips" id="durChips"></div>
+            <div class="err">Please pick one.</div>
+          </fieldset>
+        </div>
+
+        <div class="field">
+          <label class="q" for="notes">Anything else?</label>
+          <p class="hint">Optional. Links, examples, or who you usually ask for help with this.</p>
+          <textarea id="notes" name="notes" style="min-height:64px"></textarea>
+        </div>
+
+        <div class="hp" aria-hidden="true">
+          <label for="website">Leave blank</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="submit" id="submitBtn">Submit idea</button>
+      </form>
+    </div>
+
+    <div id="successView" class="success" hidden>
+      <div class="tick">✓</div>
+      <h1>Thanks! Your idea is in.</h1>
+      <p>We go through new ideas every Tuesday at 11:30. Accepted ideas move to the Internal Tools backlog, and you'll see them in "You Asked, We Built" when they ship.</p>
+      <button type="button" class="secondary" id="againBtn">Submit another idea</button>
+    </div>
+  </div>
+  <div class="footer">Token of Trust · Internal Tools Improvement Program</div>
+</main>
+
+<script>
+/* ===== CONFIG ===== */
+// Paste your Apps Script web app URL here (Deploy → New deployment → Web app).
+const ENDPOINT = 'PASTE_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+const TOOLS = ['Chatbot', 'Reporting Tool', 'Excise Investigator', 'Other Internal Tool', 'Not sure'];
+const FREQUENCIES = ['Daily', 'Weekly', 'Occasionally', 'Rarely'];
+const DURATIONS = ['Under 5 min', '5–15 min', '15–30 min', '30–60 min', '1 hr+'];
+const NAME_KEY = 'tot-improvement-name';
+/* ================== */
+
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+// ?src=chatbot | meeting | bookmark tells us which entry point people use
+const SOURCE = (params.get('src') || 'direct').slice(0, 40);
+
+function buildChips(containerId, name, options) {
+  const wrap = $(containerId);
+  options.forEach((opt, i) => {
+    const id = `${name}-${i}`;
+    const input = document.createElement('input');
+    input.type = 'radio'; input.name = name; input.id = id; input.value = opt;
+    const label = document.createElement('label');
+    label.htmlFor = id; label.textContent = opt;
+    wrap.append(input, label);
+  });
+}
+buildChips('toolChips', 'tool', TOOLS);
+buildChips('freqChips', 'frequency', FREQUENCIES);
+buildChips('durChips', 'duration', DURATIONS);
+
+// ?tool=Chatbot pre-selects the tool (so each tool can link here with itself pre-filled)
+const preTool = params.get('tool');
+if (preTool) {
+  const match = TOOLS.find(t => t.toLowerCase() === preTool.toLowerCase());
+  if (match) document.querySelector(`input[name=tool][value="${match}"]`).checked = true;
+}
+
+const form = $('ideaForm');
+form.addEventListener('change', (e) => {
+  if (e.target.name === 'tool') {
+    $('otherToolWrap').hidden = e.target.value !== 'Other Internal Tool';
+  }
+  const f = e.target.closest('.field');
+  if (f) f.classList.remove('invalid');
+});
+form.addEventListener('input', (e) => {
+  const f = e.target.closest('.field');
+  if (f) f.classList.remove('invalid');
+});
+
+try { const n = localStorage.getItem(NAME_KEY); if (n) $('name').value = n; } catch (_) {}
+if (!ENDPOINT || ENDPOINT.startsWith('PASTE_')) $('configBanner').hidden = false;
+
+function radioVal(name) {
+  const el = form.querySelector(`input[name=${name}]:checked`);
+  return el ? el.value : '';
+}
+
+function validate() {
+  const data = {
+    name: $('name').value.trim(),
+    team: $('team').value,
+    tool: radioVal('tool'),
+    otherTool: $('otherTool').value.trim(),
+    problem: $('problem').value.trim(),
+    desired: $('desired').value.trim(),
+    frequency: radioVal('frequency'),
+    duration: radioVal('duration'),
+    notes: $('notes').value.trim(),
+    website: $('website').value,
+    source: SOURCE,
+  };
+  const required = ['name', 'team', 'tool', 'problem', 'desired', 'frequency', 'duration'];
+  let first = null;
+  required.forEach(k => {
+    const f = form.querySelector(`[data-field=${k}]`);
+    const bad = !data[k];
+    f.classList.toggle('invalid', bad);
+    if (bad && !first) first = f;
+  });
+  if (first) {
+    first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusable = first.querySelector('input, select, textarea');
+    if (focusable) focusable.focus({ preventScroll: true });
+    return null;
+  }
+  return data;
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('errorBanner').hidden = true;
+  const data = validate();
+  if (!data) return;
+  if (!ENDPOINT || ENDPOINT.startsWith('PASTE_')) {
+    $('errorBanner').textContent = 'This form isn\'t connected yet. Ask the Internal Tools team to finish setup.';
+    $('errorBanner').hidden = false;
+    return;
+  }
+  const btn = $('submitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    // Form-encoded + no-cors: avoids CORS preflight against Apps Script.
+    // The response is opaque, so a resolved fetch counts as sent.
+    await fetch(ENDPOINT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data).toString(),
+    });
+    try { localStorage.setItem(NAME_KEY, data.name); } catch (_) {}
+    $('formView').hidden = true;
+    $('successView').hidden = false;
+    window.scrollTo({ top: 0 });
+  } catch (err) {
+    $('errorBanner').textContent = 'Couldn\'t submit. Check your connection and try again.';
+    $('errorBanner').hidden = false;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit idea';
+  }
+});
+
+$('againBtn').addEventListener('click', () => {
+  const keepName = $('name').value, keepTeam = $('team').value;
+  form.reset();
+  $('name').value = keepName; $('team').value = keepTeam;
+  $('otherToolWrap').hidden = true;
+  $('successView').hidden = true;
+  $('formView').hidden = false;
+  window.scrollTo({ top: 0 });
+});
+</script>
+</body>
+</html>
